@@ -477,10 +477,13 @@ function setJobs(jobs){
 }
 
 function setJob(job){
-  // อัปเดตงานเดียว (เร็วกว่า setJobs ทั้งหมด)
   var idx = _jobsCache.findIndex(function(j){ return j.id === job.id; });
   if(idx > -1) _jobsCache[idx] = job; else _jobsCache.push(job);
-  db.ref(DB_PATH + '/' + job.id).set(job).catch(function(e){ console.error('Firebase write error:', e); });
+  _isLocalUpdate = true;
+  db.ref(DB_PATH + '/' + job.id).set(job).catch(function(e){ 
+    console.error('Firebase write error:', e); 
+    _isLocalUpdate = false;
+  });
 }
 
 function deleteJobFromDB(id){
@@ -489,14 +492,21 @@ function deleteJobFromDB(id){
 }
 
 // ── ฟังการเปลี่ยนแปลงแบบ realtime ──
+var _isLocalUpdate = false;
 function initFirebaseListener(){
   showLoadingOverlay();
   db.ref(DB_PATH).on('value', function(snap){
     var data = snap.val() || {};
-    _jobsCache = Object.values(data);
-    hideLoadingOverlay();
-    // ถ้ากำลังอยู่หน้า dashboard ให้ re-render
-    if(document.getElementById('pgDash').style.display === 'flex') renderDash();
+    var newCache = Object.values(data);
+    // ถ้าเป็น local update ให้ skip re-render
+    if(!_isLocalUpdate){
+      _jobsCache = newCache;
+      hideLoadingOverlay();
+      if(document.getElementById('pgDash').style.display === 'flex') renderDash();
+    } else {
+      _isLocalUpdate = false;
+      hideLoadingOverlay();
+    }
   }, function(err){
     hideLoadingOverlay();
     console.error('Firebase read error:', err);
