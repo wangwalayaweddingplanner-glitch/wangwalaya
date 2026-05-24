@@ -479,10 +479,8 @@ function setJobs(jobs){
 function setJob(job){
   var idx = _jobsCache.findIndex(function(j){ return j.id === job.id; });
   if(idx > -1) _jobsCache[idx] = job; else _jobsCache.push(job);
-  _isLocalUpdate = true;
   db.ref(DB_PATH + '/' + job.id).set(job).catch(function(e){ 
-    console.error('Firebase write error:', e); 
-    _isLocalUpdate = false;
+    console.error('Firebase write error:', e);
   });
 }
 
@@ -491,35 +489,18 @@ function deleteJobFromDB(id){
   db.ref(DB_PATH + '/' + id).remove().catch(function(e){ console.error('Firebase delete error:', e); });
 }
 
-// ── ฟังการเปลี่ยนแปลงแบบ realtime ──
-var _isLocalUpdate = false;
-var _firstLoad = true;
+// ── โหลดข้อมูลครั้งแรก (ไม่มี realtime listener ที่จะ re-render) ──
 function initFirebaseListener(){
   showLoadingOverlay();
-  db.ref(DB_PATH).on('value', function(snap){
+  db.ref(DB_PATH).once('value').then(function(snap){
     var data = snap.val() || {};
-    var newCache = Object.values(data);
-    if(_firstLoad){
-      // โหลดครั้งแรก — แสดงข้อมูลเลย
-      _firstLoad = false;
-      _jobsCache = newCache;
-      hideLoadingOverlay();
-      if(document.getElementById('pgDash').style.display === 'flex') renderDash();
-    } else if(_isLocalUpdate){
-      // update จากเครื่องตัวเอง — อัปเดต cache แต่ไม่ re-render
-      _isLocalUpdate = false;
-      _jobsCache = newCache;
-      hideLoadingOverlay();
-    } else {
-      // update จากเครื่องอื่น — re-render ได้
-      _jobsCache = newCache;
-      hideLoadingOverlay();
-      if(document.getElementById('pgDash').style.display === 'flex') renderDash();
-    }
-  }, function(err){
+    _jobsCache = Object.values(data);
+    hideLoadingOverlay();
+    if(document.getElementById('pgDash').style.display === 'flex') renderDash();
+  }).catch(function(err){
     hideLoadingOverlay();
     console.error('Firebase read error:', err);
-    alert('⚠️ ไม่สามารถเชื่อมต่อ Firebase ได้ กรุณาตรวจสอบ Rules หรืออินเทอร์เน็ต');
+    alert('⚠️ ไม่สามารถเชื่อมต่อ Firebase ได้');
   });
 }
 
