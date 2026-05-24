@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WANG WALAYA — ระบบจองคิว</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Noto+Sans+Thai:wght@300;400;500;600&display=swap" rel="stylesheet">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<style>
+:root{
+  --gold:#C9A96E;--gold-light:#E8D5B0;--gold-dark:#8B6914;
+  --cream:#FAF7F2;--dark:#1A1410;--mid:#4A3728;
+  --line:#E5DDD0;--body:#2C1F14;--bg:#EDE8E0;
+  --green:#2E7D32;--green-bg:#E8F5E9;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Noto Sans Thai',sans-serif;background:var(--bg);}
+
+/* ── VIEWS ── */
+.page{display:none;} .page.on{display:block;} #pgPrint.on{display:block;}
+#pgForm{display:flex;flex-direction:column;align-items:center;padding:24px 16px 60px;min-height:100vh;}
+#pgForm.on{display:flex;}
+#pgPrint{display:none;background:white;min-height:100vh;}
+#pgDash{display:none;flex-direction:column;align-items:center;padding:24px 16px 60px;min-height:100vh;}
+#pgDash.on{display:flex;}
+
+/* ── BUTTONS ── */
+.btn{padding:9px 20px;border:none;border-radius:4px;font-family:'Noto Sans Thai',sans-serif;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;}
+.btn-gold{background:var(--gold);color:white;} .btn-gold:hover{background:var(--gold-dark);}
+.btn-out{background:white;color:var(--mid);border:1px solid var(--line);} .btn-out:hover{background:var(--cream);}
+.btn-green{background:var(--green);color:white;} .btn-green:hover{background:#1B5E20;}
+
+/* ── TOOLBAR ── */
+.toolbar{width:100%;max-width:900px;display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;gap:10px;}
+.toolbar h2{font-family:'Cormorant Garamond',serif;font-size:19px;color:var(--dark);letter-spacing:1px;white-space:nowrap;}
+.tbts{display:flex;gap:8px;flex-wrap:wrap;}
+
+/* ── SHEET CONFIG BANNER ── */
+#sheetBanner{width:100%;max-width:900px;background:#FFF3E0;border:1px solid #FFB74D;border-radius:6px;padding:12px 18px;margin-bottom:16px;font-size:12.5px;color:#E65100;display:flex;align-items:center;gap:10px;}
+#sheetBanner input{flex:1;border:1px solid #FFB74D;border-radius:4px;padding:6px 10px;font-size:12px;font-family:'Noto Sans Thai',sans-serif;outline:none;}
+#sheetBanner button{background:#E65100;color:white;border:none;border-radius:4px;padding:6px 14px;font-size:12px;cursor:pointer;white-space:nowrap;}
+
+/* ── FORM CARD ── */
+.card{width:100%;max-width:900px;background:var(--cream);border:1px solid var(--line);box-shadow:0 3px 20px rgba(0,0,0,.09);padding:36px 48px;}
+.card-hdr{text-align:center;margin-bottom:24px;padding-bottom:18px;border-bottom:1px solid var(--gold-light);}
+.brand{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:600;letter-spacing:4px;color:var(--dark);}
+.brand-sub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:14px;color:var(--gold);letter-spacing:4px;margin:3px 0 7px;}
+.brand-addr{font-size:11px;color:#7A6555;line-height:1.7;}
+.sect{margin-bottom:22px;}
+.s-ttl{font-size:11px;font-weight:600;letter-spacing:1px;color:var(--gold-dark);border-bottom:1.5px solid var(--gold-light);padding-bottom:5px;margin-bottom:12px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px 24px;}
+.sp2{grid-column:span 2;}
+.fld{display:flex;flex-direction:column;gap:3px;}
+.fld label{font-size:11px;color:#7A6555;font-weight:500;}
+.fld input,.fld textarea{border:none;border-bottom:1px solid var(--line);background:transparent;font-family:'Noto Sans Thai',sans-serif;font-size:13px;color:var(--body);padding:4px 2px;outline:none;transition:border-color .2s;width:100%;}
+.fld input:focus,.fld textarea:focus{border-bottom-color:var(--gold);}
+.fld textarea{resize:none;height:44px;line-height:1.6;}
+.ckg,.rdg{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:5px;}
+.ci,.ri{display:flex;align-items:center;gap:5px;font-size:12.5px;color:var(--body);cursor:pointer;}
+.ci input,.ri input{accent-color:var(--gold);width:14px;height:14px;cursor:pointer;}
+.otxt{border:none;border-bottom:1px solid var(--line);background:transparent;font-size:12px;width:90px;outline:none;margin-left:3px;font-family:'Noto Sans Thai',sans-serif;}
+.dep-box{background:white;border:1px solid var(--line);border-left:3px solid var(--gold);padding:12px 16px;margin-bottom:10px;}
+.dep-r{display:flex;align-items:baseline;gap:8px;margin-bottom:8px;} .dep-r:last-child{margin-bottom:0;}
+.dlbl{font-size:12px;color:var(--mid);min-width:200px;white-space:nowrap;}
+.dinp{border:none;border-bottom:1px solid var(--line);background:transparent;font-family:'Noto Sans Thai',sans-serif;font-size:13px;color:var(--body);padding:2px;outline:none;flex:1;transition:border-color .2s;}
+.dinp:focus{border-bottom-color:var(--gold);}
+.dunit{font-size:11px;color:var(--mid);}
+.hr{height:1px;background:var(--line);margin:8px 0 10px;}
+.slip-box{border:1.5px dashed var(--gold-light);background:white;padding:16px;text-align:center;cursor:pointer;position:relative;}
+.slip-box input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%;}
+#slipPrev{max-width:180px;max-height:180px;object-fit:contain;margin-top:8px;display:none;border:1px solid var(--line);}
+.save-bar{margin-top:24px;padding-top:18px;border-top:1.5px solid var(--gold-light);display:flex;align-items:center;justify-content:space-between;}
+.save-msg{font-size:12px;color:var(--gold-dark);font-weight:500;}
+.big-save{background:var(--gold);color:white;border:none;border-radius:4px;padding:11px 34px;font-family:'Noto Sans Thai',sans-serif;font-size:14px;font-weight:500;cursor:pointer;}
+.big-save:hover{background:var(--gold-dark);}
+
+/* ── PRINT ── */
+.pbar{position:fixed;top:0;left:0;right:0;background:var(--dark);color:white;display:flex;align-items:center;justify-content:space-between;padding:11px 22px;z-index:999;}
+.pbar span{font-size:13px;opacity:.8;} .pacts{display:flex;gap:8px;}
+.doc{max-width:210mm;margin:56px auto 0;padding:52px 56px 44px;background:white;}
+.dh{text-align:center;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--gold-light);position:relative;}
+.dh::after{content:'✦  ✦  ✦';position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);background:white;padding:0 10px;color:var(--gold);font-size:9px;letter-spacing:5px;}
+.dbrand{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:600;letter-spacing:5px;color:var(--dark);}
+.dbsub{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:12px;color:var(--gold);letter-spacing:5px;margin:3px 0 6px;}
+.daddr{font-size:10px;color:#7A6555;line-height:1.7;}
+.dtw{text-align:center;margin:16px 0 12px;}
+.dt{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;color:var(--dark);letter-spacing:3px;display:inline-block;padding:7px 30px;border-top:1.5px solid var(--gold);border-bottom:1.5px solid var(--gold);}
+.dmeta{display:flex;justify-content:space-between;font-size:11px;color:var(--mid);margin-bottom:14px;}
+.dmv{border-bottom:1px solid var(--line);display:inline-block;min-width:110px;margin-left:4px;}
+.ds{margin-bottom:14px;} .dst{font-size:10px;font-weight:600;letter-spacing:1px;color:var(--gold-dark);border-bottom:1.5px solid var(--gold-light);padding-bottom:4px;margin-bottom:8px;}
+.dg2{display:grid;grid-template-columns:1fr 1fr;gap:9px 18px;}
+.df{display:flex;flex-direction:column;gap:2px;}
+.df .lb{font-size:9px;color:#7A6555;} .df .vl{font-size:11px;color:var(--dark);border-bottom:1px solid var(--line);padding:2px 0 3px;min-height:17px;}
+.dtag{display:inline-block;background:var(--gold-light);color:var(--gold-dark);border-radius:2px;padding:1px 6px;font-size:9.5px;font-weight:500;margin:1px 2px;}
+.ci-doc{font-size:11px;color:var(--body);line-height:1.8;}
+.dtbl{width:100%;border-collapse:collapse;font-size:10.5px;}
+.dtbl th{background:var(--gold-light);color:var(--gold-dark);padding:5px 9px;text-align:left;font-size:9.5px;font-weight:600;}
+.dtbl td{padding:6px 9px;border-bottom:1px solid var(--line);color:var(--body);}
+.dtbl td:last-child{text-align:right;font-weight:500;}
+.tbox{background:#FFF9F2;border:1px solid var(--gold-light);padding:11px 14px;font-size:9.5px;color:var(--mid);line-height:1.9;}
+.tr{display:flex;gap:6px;margin-bottom:3px;} .tn{color:var(--gold-dark);font-weight:600;min-width:15px;}
+.ctbl{width:100%;border-collapse:collapse;font-size:9.5px;margin:5px 0;}
+.ctbl th{background:var(--gold-light);color:var(--gold-dark);padding:4px 8px;text-align:left;}
+.ctbl td{padding:4px 8px;border-bottom:1px solid var(--line);color:var(--mid);}
+.sig-row{display:grid;grid-template-columns:1fr 1fr;gap:22px;margin-top:5px;}
+.sig-box{text-align:center;} .sig-lbl{font-size:9.5px;color:#7A6555;margin-bottom:6px;}
+.sig-line{border-bottom:1px solid var(--dark);height:38px;margin-bottom:4px;}
+.sig-name{font-size:9.5px;color:#AAA;} .sig-date{font-size:9.5px;color:#7A6555;margin-top:3px;}
+.doc-ft{text-align:center;margin-top:16px;padding-top:11px;border-top:1px solid var(--line);font-size:8.5px;color:#BBB;letter-spacing:.8px;}
+
+/* ── LOGIN PAGE ── */
+#pgLogin{display:none;min-height:100vh;align-items:center;justify-content:center;background:var(--bg);}
+#pgLogin.on{display:flex;}
+.login-card{width:100%;max-width:400px;background:var(--cream);border:1px solid var(--line);box-shadow:0 3px 20px rgba(0,0,0,.09);padding:40px 48px;}
+.login-hdr{text-align:center;margin-bottom:28px;padding-bottom:18px;border-bottom:1px solid var(--gold-light);}
+.login-fld{display:flex;flex-direction:column;gap:4px;margin-bottom:16px;}
+.login-fld label{font-size:11px;color:#7A6555;font-weight:500;}
+.login-fld input{border:none;border-bottom:1px solid var(--line);background:transparent;font-family:'Noto Sans Thai',sans-serif;font-size:14px;color:var(--body);padding:6px 2px;outline:none;transition:border-color .2s;}
+.login-fld input:focus{border-bottom-color:var(--gold);}
+.login-btn{width:100%;background:var(--gold);color:white;border:none;border-radius:4px;padding:12px;font-family:'Noto Sans Thai',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:8px;}
+.login-btn:hover{background:var(--gold-dark);}
+.login-err{font-size:12px;color:#e53935;text-align:center;margin-top:8px;min-height:18px;}
+.logout-btn{background:none;border:1px solid var(--line);border-radius:4px;padding:5px 12px;font-size:12px;color:var(--mid);cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.logout-btn:hover{background:var(--cream);color:#e53935;border-color:#e53935;}
+.job-list{width:100%;max-width:900px;display:flex;flex-direction:column;gap:14px;}
+.job-card{background:var(--cream);border:1px solid var(--line);box-shadow:0 2px 10px rgba(0,0,0,.06);border-radius:6px;overflow:hidden;}
+.jh{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;cursor:pointer;border-bottom:1px solid transparent;transition:all .2s;}
+.jh:hover{background:rgba(201,169,110,.05);}
+.jh.open{border-bottom-color:var(--gold-light);}
+.j-couple{font-weight:600;font-size:15px;color:var(--dark);}
+.j-meta{font-size:11px;color:var(--mid);margin-top:3px;line-height:1.7;}
+.j-acts{display:flex;gap:7px;align-items:center;flex-shrink:0;margin-left:12px;}
+.tag{font-size:10px;padding:3px 10px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.tag-cal{background:var(--gold-light);color:var(--gold-dark);text-decoration:none;border:none;font-family:'Noto Sans Thai',sans-serif;cursor:pointer;padding:4px 10px;border-radius:20px;font-size:10px;font-weight:500;}
+.jdel{background:none;border:none;color:#CCC;cursor:pointer;font-size:14px;padding:4px 7px;border-radius:4px;}
+.jdel:hover{color:#e53935;background:#FFF0F0;}
+.jbody{display:none;padding:18px 20px 20px;}
+.jbody.open{display:block;}
+
+/* Checklist steps */
+.steps{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+.step{border:1px solid var(--line);border-radius:6px;background:white;overflow:hidden;}
+.step-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;}
+.step-hdr:hover{background:#FAFAFA;}
+.step-chk{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;flex-shrink:0;}
+.step-lbl{font-size:13px;color:var(--dark);font-weight:500;flex:1;}
+.step-lbl.done{text-decoration:line-through;color:#AAA;}
+.step-date{font-size:10px;color:#AAA;}
+.step-body{display:none;border-top:1px solid var(--line);padding:12px 14px;background:#FAFAFA;}
+.step-body.open{display:block;}
+.step-note{width:100%;border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-family:'Noto Sans Thai',sans-serif;font-size:12px;color:var(--body);resize:none;outline:none;height:56px;line-height:1.6;background:white;}
+.step-note:focus{border-color:var(--gold);}
+.link-row{display:flex;gap:8px;margin-top:8px;align-items:center;}
+.link-inp{flex:1;border:1px solid var(--line);border-radius:4px;padding:6px 10px;font-size:12px;font-family:'Noto Sans Thai',sans-serif;outline:none;}
+.link-inp:focus{border-color:var(--gold);}
+.link-btn{background:var(--gold-light);color:var(--gold-dark);border:none;border-radius:4px;padding:6px 12px;font-size:11px;cursor:pointer;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
+
+/* Budget table in step */
+.budget-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px;}
+.team-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);}
+.team-item:last-child{border-bottom:none;}
+.team-item-label{font-size:13px;color:var(--body);min-width:130px;font-weight:500;}
+.team-item-input{flex:1;border:none;border-bottom:1px solid var(--line);background:transparent;font-family:'Noto Sans Thai',sans-serif;font-size:12px;color:var(--body);padding:3px 2px;outline:none;}
+.team-item-input:focus{border-bottom-color:var(--gold);}
+.team-item-input::placeholder{color:#bbb;}
+.team-del-btn{background:none;border:none;color:#ccc;cursor:pointer;font-size:14px;padding:0 4px;}
+.team-del-btn:hover{color:#e53935;}
+.add-team-btn{margin-top:10px;background:none;border:1px dashed var(--gold);color:var(--gold);border-radius:4px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:'Noto Sans Thai',sans-serif;}
+.add-team-btn:hover{background:var(--gold-light);}
+.budget-tbl th{background:var(--gold-light);color:var(--gold-dark);padding:5px 8px;text-align:left;font-size:11px;}
+.budget-tbl td{padding:5px 8px;border-bottom:1px solid var(--line);}
+.budget-tbl td input{border:none;border-bottom:1px solid var(--line);background:transparent;font-family:'Noto Sans Thai',sans-serif;font-size:12px;width:100%;outline:none;padding:2px 0;}
+.budget-tbl td input:focus{border-bottom-color:var(--gold);}
+.add-row-btn{background:none;border:1px dashed var(--line);border-radius:4px;padding:5px 12px;font-size:11px;color:var(--mid);cursor:pointer;margin-top:6px;width:100%;}
+.add-row-btn:hover{border-color:var(--gold);color:var(--gold-dark);}
+.total-row{font-weight:600;color:var(--gold-dark);background:var(--gold-light);}
+
+/* j-actions bar */
+.j-action-bar{display:flex;gap:8px;padding-top:14px;border-top:1px solid var(--line);}
+
+/* empty */
+.empty{text-align:center;padding:50px 20px;color:var(--mid);width:100%;}
+
+/* overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.obox{background:white;border-radius:8px;padding:28px 36px;text-align:center;max-width:320px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.2);}
+.oicon{font-size:46px;margin-bottom:8px;} .otitle{font-size:16px;font-weight:600;color:var(--dark);margin-bottom:5px;}
+.osub{font-size:11.5px;color:#7A6555;margin-bottom:20px;}
+.obtns{display:flex;gap:8px;justify-content:center;}
+
+@media print{
+  #pgForm, #pgDash, #pgPrint .pbar{ display:none!important; }
+  #pgPrint{ display:block!important; background:white; }
+  .doc{ margin-top:0; }
+  @page{ margin:.8cm; size:A4; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PAGE: LOGIN ══ -->
+<div id="pgLogin" class="on">
+  <div class="login-card">
+    <div class="login-hdr">
+      <div class="brand">WANG WALAYA</div>
+      <div class="brand-sub">Wedding Planner</div>
+      <div style="font-size:11px;color:#7A6555;margin-top:6px;">กรุณาเข้าสู่ระบบ</div>
+    </div>
+    <div class="login-fld">
+      <label>Email</label>
+      <input type="email" id="loginEmail" placeholder="your@email.com">
+    </div>
+    <div class="login-fld">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="loginPass" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">🔐 เข้าสู่ระบบ</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══ PAGE: FORM ══ -->
+<div id="pgForm" class="on">
+
+
+  <div class="toolbar">
+    <h2>✦ กรอกข้อมูลการจอง</h2>
+    <div class="tbts">
+      <button class="btn btn-out" onclick="showDash()">📋 งานทั้งหมด</button>
+      <button class="btn btn-out" onclick="clearForm()">🔄 ล้างข้อมูล</button>
+      <button class="btn btn-gold" onclick="previewDoc()">✨ สร้างเอกสาร PDF</button>
+      <button class="logout-btn" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="brand">WANG WALAYA</div>
+      <div class="brand-sub">Wedding Planner</div>
+      <div class="brand-addr">118, 118/1-2 หมู่ 2 ตำบลควนกรด อำเภอทุ่งสง จังหวัดนครศรีธรรมราช 80110<br>Tel. 095-4252999 / 064-2010665</div>
+    </div>
+
+    <div class="g2" style="margin-bottom:20px;">
+      <div class="fld"><label>เลขที่เอกสาร</label><input id="fDocno" placeholder="WW-2025-001"></div>
+      <div class="fld"><label>วันที่ออกเอกสาร</label><input type="date" id="fDocdate"></div>
+    </div>
+
+    <div class="sect">
+      <div class="s-ttl">ข้อมูลลูกค้า</div>
+      <div class="g2">
+        <div class="fld"><label>ชื่อเจ้าบ่าว</label><input id="fGroom" placeholder="ชื่อ-นามสกุล"></div>
+        <div class="fld"><label>ชื่อเจ้าสาว</label><input id="fBride" placeholder="ชื่อ-นามสกุล"></div>
+        <div class="fld"><label>เบอร์โทรติดต่อ</label><input id="fTel" placeholder="0xx-xxx-xxxx"></div>
+        <div class="fld"><label>Line ID</label><input id="fLine" placeholder="@lineid"></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="s-ttl">รายละเอียดงาน</div>
+      <div class="g2">
+        <div class="fld"><label>วันที่จัดงาน</label><input type="date" id="fDate"></div>
+        <div class="fld"><label>จำนวนแขก (ประมาณการณ์)</label><input type="number" id="fGuests" placeholder="จำนวนท่าน"></div>
+        <div class="fld sp2">
+          <label>ประเภทงาน</label>
+          <div class="rdg">
+            <label class="ri"><input type="radio" name="etype" value="งานแต่งงาน"> งานแต่งงาน</label>
+            <label class="ri"><input type="radio" name="etype" value="Event / งานจัดเลี้ยง"> Event / งานจัดเลี้ยง</label>
+            <label class="ri"><input type="radio" name="etype" value="_other"> อื่นๆ <input class="otxt" id="fEtypeOther" placeholder="ระบุ..."></label>
+          </div>
+        </div>
+        <div class="fld sp2">
+          <label>ช่วงเวลาการจัดงาน</label>
+          <div class="ckg">
+            <label class="ci"><input type="checkbox" class="ckT" value="เช้า"> เช้า</label>
+            <label class="ci"><input type="checkbox" class="ckT" value="เที่ยง"> เที่ยง</label>
+            <label class="ci"><input type="checkbox" class="ckT" value="บ่าย"> บ่าย</label>
+            <label class="ci"><input type="checkbox" class="ckT" value="เย็น"> เย็น</label>
+            <label class="ci"><input type="checkbox" class="ckT" value="After Party"> After Party</label>
+          </div>
+        </div>
+        <div class="fld sp2">
+          <label>อาหารจัดเลี้ยงสไตล์</label>
+          <div class="ckg">
+            <label class="ci"><input type="checkbox" class="ckF" value="ไทย"> ไทย</label>
+            <label class="ci"><input type="checkbox" class="ckF" value="โต๊ะจีน"> โต๊ะจีน</label>
+            <label class="ci"><input type="checkbox" class="ckF" value="บุฟเฟต์"> บุฟเฟต์</label>
+            <label class="ci"><input type="checkbox" class="ckF" value="ค็อกเทล"> ค็อกเทล</label>
+            <label class="ci"><input type="checkbox" class="ckF" value="_other"> อื่นๆ <input class="otxt" id="fFoodOther" placeholder="ระบุ..."></label>
+          </div>
+        </div>
+        <div class="fld sp2"><label>สถานที่จัดงาน</label><input id="fVenue" placeholder="ชื่อโรงแรม / เวนิว"></div>
+        <div class="fld"><label>โทนสี / สไตล์งานที่ชอบ</label><input id="fStyle" placeholder="เช่น Rustic, Luxury Gold..."></div>
+        <div class="fld"><label>งบประมาณที่วางแผนไว้ (บาท)</label><input id="fBudget" placeholder="เช่น 300,000"></div>
+      </div>
+    </div>
+
+    <div class="sect">
+      <div class="s-ttl">พิธีการ (เลือกรายการที่ต้องการ)</div>
+      <div class="ckg">
+        <label class="ci"><input type="checkbox" class="ckC" value="แห่ขันหมาก"> แห่ขันหมาก</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="พิธีสงฆ์"> พิธีสงฆ์</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="สู่ขอ"> สู่ขอ</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="หมั้น"> หมั้น</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="แต่ง"> แต่ง</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="รับไหว้"> รับไหว้</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="ยกน้ำชา"> ยกน้ำชา</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="รดน้ำสังข์"> รดน้ำสังข์</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="งานเลี้ยงเที่ยง"> งานเลี้ยงเที่ยง</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="งานเลี้ยงเย็น"> งานเลี้ยงเย็น</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="ตัดเค้ก"> ตัดเค้ก</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="จุดเทียนชัย"> จุดเทียนชัย</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="รินแชมเปญ"> รินแชมเปญ</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="โยนช่อดอกไม้"> โยนช่อดอกไม้</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="เล่นเกมส์"> เล่นเกมส์</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="Vow Ceremony"> Vow Ceremony</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="Cocktail Hour"> Cocktail Hour</label>
+        <label class="ci"><input type="checkbox" class="ckC" value="Dinner"> Dinner</label>
+      </div>
+      <div class="fld" style="margin-top:10px;"><label>พิธีการอื่นๆ / หมายเหตุ</label><textarea id="fCerOther" placeholder="ระบุเพิ่มเติม..."></textarea></div>
+    </div>
+
+    <div class="sect">
+      <div class="s-ttl">การชำระเงิน</div>
+      <div class="dep-box">
+        <div class="dep-r"><span class="dlbl">งวดที่ 1 — มัดจำจองคิว จำนวน</span><input class="dinp" id="fDep1" placeholder="..............."><span class="dunit">บาท</span></div>
+        <div class="dep-r"><span class="dlbl">งวดที่ 2 — 50% (ก่อนงาน 60 วัน)</span><input class="dinp" id="fDep2" placeholder="..............."><span class="dunit">บาท</span></div>
+        <div class="dep-r"><span class="dlbl">งวดที่ 3 — 50% (วันงาน/หลังงานไม่เกิน 1 วัน)</span><input class="dinp" id="fDep3" placeholder="..............."><span class="dunit">บาท</span></div>
+        <div class="hr"></div>
+        <div class="dep-r"><span class="dlbl">วันที่ชำระมัดจำ</span><input class="dinp" type="date" id="fPaidDate"></div>
+        <div class="dep-r"><span class="dlbl">ช่องทางการชำระ</span><input class="dinp" id="fPayMethod" placeholder="โอนผ่านธนาคาร / QR / เงินสด"></div>
+      </div>
+      <div class="slip-box">
+        <input type="file" accept="image/*" id="slipInput" onchange="previewSlip(event)">
+        <div style="font-size:20px;">📎</div>
+        <div style="font-size:12px;color:#7A6555;">แนบสลิปการชำระเงิน</div>
+        <div style="font-size:10px;color:#AAA;margin-top:2px;">คลิกเพื่อเลือกรูปภาพ</div>
+        <img id="slipPrev" src="" alt="">
+      </div>
+    </div>
+
+    <div class="save-bar">
+      <span class="save-msg" id="saveMsg"></span>
+      <button class="big-save" onclick="saveBooking()">💾 บันทึกการจอง</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PAGE: PRINT ══ -->
+<div id="pgPrint" class="page">
+  <div class="pbar">
+    <span>📄 ตัวอย่างเอกสาร</span>
+    <div class="pacts">
+      <button class="btn btn-out" onclick="backToForm()" style="background:transparent;color:white;border-color:rgba(255,255,255,.4);">← แก้ไข</button>
+      <button class="btn btn-gold" onclick="window.print()">🖨️ พิมพ์ / บันทึก PDF</button>
+    </div>
+  </div>
+  <div class="doc" id="docOut"></div>
+</div>
+
+<!-- ══ PAGE: DASHBOARD ══ -->
+<div id="pgDash" class="page">
+  <div class="toolbar">
+    <h2>📋 งานทั้งหมด</h2>
+    <div class="tbts">
+      <button class="btn btn-gold" onclick="showForm()">+ จองคิวใหม่</button>
+      <button class="logout-btn" onclick="doLogout()">ออกจากระบบ</button>
+    </div>
+  </div>
+  <div class="job-list" id="jobList"></div>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  FIREBASE CONFIG
+// ══════════════════════════════════════════
+var firebaseConfig = {
+  apiKey: "AIzaSyASqcu4d7IVSZApiZkkkjq-hn09U5kpN7w",
+  authDomain: "deposit-wangwalaya.firebaseapp.com",
+  databaseURL: "https://deposit-wangwalaya-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "deposit-wangwalaya",
+  storageBucket: "deposit-wangwalaya.firebasestorage.app",
+  messagingSenderId: "247291365395",
+  appId: "1:247291365395:web:520903fdb0017d77c2d7e6"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.database();
+var auth = firebase.auth();
+var DB_PATH = 'ww_jobs';
+
+// ══════════════════════════════════════════
+//  AUTH
+// ══════════════════════════════════════════
+auth.onAuthStateChanged(function(user){
+  if(user){
+    // Login แล้ว — ซ่อนหน้า login แสดง Dashboard
+    document.getElementById('pgLogin').style.display='none';
+    document.getElementById('pgLogin').classList.remove('on');
+    initFirebaseListener();
+    // แสดงหน้า Dashboard
+    document.getElementById('pgForm').style.display='none';
+    document.getElementById('pgPrint').style.display='none';
+    var dash = document.getElementById('pgDash');
+    dash.style.display='flex';
+    renderDash();
+  } else {
+    // ยังไม่ login — แสดงหน้า login ซ่อนทุกหน้า
+    hideLoadingOverlay();
+    document.getElementById('pgLogin').style.display='flex';
+    document.getElementById('pgLogin').classList.add('on');
+    document.getElementById('pgForm').style.display='none';
+    document.getElementById('pgDash').style.display='none';
+    document.getElementById('pgPrint').style.display='none';
+  }
+});
+
+function doLogin(){
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPass').value;
+  var err = document.getElementById('loginErr');
+  err.textContent='';
+  if(!email||!pass){ err.textContent='กรุณากรอก Email และรหัสผ่าน'; return; }
+  auth.signInWithEmailAndPassword(email, pass)
+    .catch(function(e){
+      if(e.code==='auth/user-not-found'||e.code==='auth/wrong-password'||e.code==='auth/invalid-credential')
+        err.textContent='Email หรือรหัสผ่านไม่ถูกต้อง';
+      else if(e.code==='auth/too-many-requests')
+        err.textContent='ลองหลายครั้งเกินไป กรุณารอสักครู่';
+      else err.textContent='เกิดข้อผิดพลาด: '+e.message;
+    });
+}
+
+function doLogout(){
+  if(!confirm('ออกจากระบบ?')) return;
+  auth.signOut();
+}
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+var slipDataURL = null;
+var currentEditId = null;
+var _jobsCache = []; // cache local สำหรับ render เร็ว
+
+var STEPS = [
+  { id:'site',      label:'ดูสถานที่จัดงาน',          hasLink:true,  linkLabel:'ลิงก์โฟลเดอร์รูปสถานที่',   linkPh:'https://drive.google.com/...' },
+  { id:'idea',      label:'สรุปไอเดีย',               hasLink:false },
+  { id:'team',      label:'จองทีม',                   hasLink:false, hasTeam:true },
+  { id:'quote',     label:'ออกใบเสนอราคา',            hasLink:true,  linkLabel:'ลิงก์ใบเสนอราคา (Drive)',    linkPh:'https://docs.google.com/...' },
+  { id:'design',    label:'ออกแบบ-ส่งแบบ 2D',        hasLink:true,  linkLabel:'ลิงก์ไฟล์แบบ 2D',           linkPh:'https://drive.google.com/...' },
+  { id:'ceremony',  label:'สรุปพิธีการ',              hasLink:false },
+  { id:'final',     label:'Final Call — สรุปรายละเอียดรอบสุดท้าย', hasLink:false },
+  { id:'account',   label:'บัญชีรายรับ-รายจ่าย',      hasLink:true,  linkLabel:'ลิงก์ไฟล์บัญชี (Drive/Sheets)', linkPh:'https://docs.google.com/spreadsheets/...' }
+];
+
+// ทีมเริ่มต้นสำหรับขั้นตอนจองทีม
+var DEFAULT_TEAM_ITEMS = [
+  { id:'embroidery', label:'ช่างปัก' },
+  { id:'runqueue',   label:'ทีมรันคิว' },
+  { id:'av',         label:'ระบบไฟแสงสีเสียง' },
+  { id:'mc',         label:'พิธีกร' }
+];
+
+// ══════════════════════════════════════════
+//  FIREBASE STORAGE (แทน localStorage)
+// ══════════════════════════════════════════
+function getJobs(){ return _jobsCache; }
+
+function setJobs(jobs){
+  _jobsCache = jobs;
+  // แปลง array → object keyed by id สำหรับ Firebase
+  var obj = {};
+  jobs.forEach(function(j){ obj[j.id] = j; });
+  db.ref(DB_PATH).set(obj).catch(function(e){ console.error('Firebase write error:', e); });
+}
+
+function setJob(job){
+  // อัปเดตงานเดียว (เร็วกว่า setJobs ทั้งหมด)
+  var idx = _jobsCache.findIndex(function(j){ return j.id === job.id; });
+  if(idx > -1) _jobsCache[idx] = job; else _jobsCache.push(job);
+  db.ref(DB_PATH + '/' + job.id).set(job).catch(function(e){ console.error('Firebase write error:', e); });
+}
+
+function deleteJobFromDB(id){
+  _jobsCache = _jobsCache.filter(function(j){ return j.id !== id; });
+  db.ref(DB_PATH + '/' + id).remove().catch(function(e){ console.error('Firebase delete error:', e); });
+}
+
+// ── ฟังการเปลี่ยนแปลงแบบ realtime ──
+function initFirebaseListener(){
+  showLoadingOverlay();
+  db.ref(DB_PATH).on('value', function(snap){
+    var data = snap.val() || {};
+    _jobsCache = Object.values(data);
+    hideLoadingOverlay();
+    // ถ้ากำลังอยู่หน้า dashboard ให้ re-render
+    if(document.getElementById('pgDash').style.display === 'flex') renderDash();
+  }, function(err){
+    hideLoadingOverlay();
+    console.error('Firebase read error:', err);
+    alert('⚠️ ไม่สามารถเชื่อมต่อ Firebase ได้ กรุณาตรวจสอบ Rules หรืออินเทอร์เน็ต');
+  });
+}
+
+// ── Loading overlay ──
+function showLoadingOverlay(){
+  if(document.getElementById('fbLoading')) return;
+  var el = document.createElement('div');
+  el.id = 'fbLoading';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(250,247,242,.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;';
+  el.innerHTML = '<div style="font-size:36px;">💍</div><div style="font-family:\'Cormorant Garamond\',serif;font-size:18px;letter-spacing:2px;color:#1A1410;">WANG WALAYA</div><div style="font-size:13px;color:#7A6555;">กำลังโหลดข้อมูล...</div>';
+  document.body.appendChild(el);
+}
+function hideLoadingOverlay(){
+  var el = document.getElementById('fbLoading'); if(el) el.remove();
+}
+
+// Google Sheets URL (ยังคงเก็บใน localStorage เพราะเป็น config ไม่ใช่ข้อมูล)
+function getSheetUrl(){ return localStorage.getItem('ww_sheet_url')||''; }
+function saveSheetUrl(){
+  var u = document.getElementById('sheetUrl').value.trim();
+  if(!u){ alert('กรุณากรอก URL'); return; }
+  localStorage.setItem('ww_sheet_url', u);
+  document.getElementById('sheetBanner').style.display='none';
+  alert('✅ บันทึก URL แล้วค่ะ');
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function gv(id){ var e=document.getElementById(id); return e?e.value.trim():''; }
+function gchecked(cls){
+  return Array.prototype.slice.call(document.querySelectorAll('.'+cls+':checked')).map(function(el){
+    if(el.value==='_other'){ return cls==='ckF'?gv('fFoodOther')||null:null; }
+    return el.value;
+  }).filter(Boolean);
+}
+function getEtype(){
+  var r=document.querySelector('input[name="etype"]:checked');
+  if(!r) return '';
+  return r.value==='_other'?gv('fEtypeOther'):r.value;
+}
+function fmtDate(d){
+  if(!d) return '—';
+  var p=d.split('-');
+  var m=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return parseInt(p[2])+' '+m[parseInt(p[1])-1]+' '+(parseInt(p[0])+543);
+}
+function calLink(d){
+  var title=encodeURIComponent('งานแต่ง '+(d.groom||'')+' & '+(d.bride||''));
+  var loc=encodeURIComponent(d.venue||'');
+  var dates='';
+  if(d.eventdate){ var dd=d.eventdate.replace(/-/g,''); dates=dd+'/'+dd; }
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+title+'&dates='+dates+'&location='+loc+'&details='+encodeURIComponent('Wang Walaya Wedding Planner');
+}
+
+// ══════════════════════════════════════════
+//  SLIP
+// ══════════════════════════════════════════
+function previewSlip(e){
+  var f=e.target.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(ev){
+    slipDataURL=ev.target.result;
+    var img=document.getElementById('slipPrev'); img.src=slipDataURL; img.style.display='block';
+  };
+  r.readAsDataURL(f);
+}
+
+// ══════════════════════════════════════════
+//  COLLECT
+// ══════════════════════════════════════════
+function collect(){
+  return {
+    docno:gv('fDocno'), docdate:gv('fDocdate'),
+    groom:gv('fGroom'), bride:gv('fBride'), tel:gv('fTel'), line:gv('fLine'),
+    eventdate:gv('fDate'), guests:gv('fGuests'),
+    etype:getEtype(), times:gchecked('ckT'), foods:gchecked('ckF'),
+    venue:gv('fVenue'), style:gv('fStyle'), budget:gv('fBudget'),
+    ceremonies:gchecked('ckC'), cerOther:gv('fCerOther'),
+    dep1:gv('fDep1'), dep2:gv('fDep2'), dep3:gv('fDep3'),
+    paidDate:gv('fPaidDate'), payMethod:gv('fPayMethod'),
+    slipDataURL:slipDataURL
+  };
+}
+
+// ══════════════════════════════════════════
+//  SAVE BOOKING (local + Google Sheets)
+// ══════════════════════════════════════════
+function saveBooking(){
+  var d = collect();
+  if(!d.groom && !d.bride){ alert('กรุณากรอกชื่อเจ้าบ่าวหรือเจ้าสาวอย่างน้อย 1 ท่าน'); return; }
+
+  var jobs = getJobs();
+  var id;
+
+  if(currentEditId) {
+    // ── อัปเดตงานเดิม ──
+    id = currentEditId;
+    var idx = -1;
+    for(var i=0;i<jobs.length;i++){ if(jobs[i].id===id){idx=i;break;} }
+    if(idx>-1){
+      // เก็บ steps และข้อมูลอื่นที่ไม่ได้อยู่ในฟอร์มไว้
+      var oldSteps = jobs[idx].steps;
+      var oldSaved = jobs[idx].savedAt;
+      var updated = Object.assign({}, d, {
+        id:id,
+        savedAt:oldSaved,
+        updatedAt:new Date().toISOString(),
+        steps:oldSteps
+      });
+      setJob(updated);
+    }
+    // รีเซ็ตโหมดแก้ไข
+    currentEditId = null;
+    var saveBtn=document.querySelector('.big-save');
+    if(saveBtn) saveBtn.textContent='💾 บันทึกการจอง';
+  } else {
+    // ── สร้างงานใหม่ ──
+    id = 'WW-'+Date.now();
+    var steps = {};
+    STEPS.forEach(function(s){
+      steps[s.id]={ done:false, date:'', note:'', link:'' };
+      if(s.hasTeam){
+        // สร้าง team items เริ่มต้น
+        steps[s.id].items = DEFAULT_TEAM_ITEMS.map(function(t){
+          return { id:t.id, label:t.label, booked:'', done:false };
+        });
+      }
+    });
+    steps.account.rows = [];
+    var job = Object.assign({}, d, { id:id, savedAt:new Date().toISOString(), steps:steps });
+    setJob(job);
+  }
+
+  // ส่งไป Google Sheets (ถ้ามี URL)
+  var sheetUrl = getSheetUrl();
+  var msg = document.getElementById('saveMsg');
+  if(sheetUrl){
+    var payload = Object.assign({ action:'save_booking', bookingId:id }, d);
+    delete payload.slipDataURL; // ไม่ส่งรูปไป Sheets
+    fetch(sheetUrl, {
+      method:'POST',
+      body: JSON.stringify(payload)
+    }).then(function(r){ return r.json(); })
+      .then(function(res){
+        if(msg) msg.textContent = res.status==='ok' ? '✅ บันทึกลง Google Sheets แล้ว' : '⚠️ บันทึก local แล้ว (Sheets error: '+res.message+')';
+      }).catch(function(){
+        if(msg) msg.textContent = '⚠️ บันทึก local แล้ว (ไม่สามารถเชื่อมต่อ Sheets ได้)';
+      });
+    if(msg) msg.textContent = '⏳ กำลังบันทึกไป Google Sheets...';
+  } else {
+    if(msg){ msg.textContent='✅ บันทึกแล้ว (local) — กรอก Sheets URL เพื่อซิงก์ข้อมูล'; setTimeout(function(){ msg.textContent=''; },5000); }
+  }
+
+  showOverlay(id, d);
+}
+
+// ══════════════════════════════════════════
+//  OVERLAY
+// ══════════════════════════════════════════
+function showOverlay(id, d){
+  var ov=document.createElement('div'); ov.className='overlay'; ov.id='ov1';
+  ov.innerHTML='<div class="obox">'+
+    '<div class="oicon">✅</div>'+
+    '<div class="otitle">บันทึกการจองแล้ว</div>'+
+    '<div class="osub">'+(d.groom||'')+(d.bride?' & '+d.bride:'')+'<br>'+(d.eventdate?fmtDate(d.eventdate):'')+(d.venue?' · '+d.venue:'')+'</div>'+
+    '<div class="obtns">'+
+      '<a class="btn btn-out" href="'+calLink(d)+'" target="_blank" onclick="">📅 เพิ่ม Calendar</a>'+
+      '<button class="btn btn-gold" onclick="closeOv();previewDoc();">📄 ดูเอกสาร</button>'+
+      '<button class="btn btn-out" onclick="closeOv();showDash();">📋 งานทั้งหมด</button>'+
+    '</div>'+
+  '</div>';
+  document.body.appendChild(ov);
+}
+function closeOv(){ var o=document.getElementById('ov1'); if(o) o.remove(); }
+
+// ══════════════════════════════════════════
+//  BUILD DOC HTML
+// ══════════════════════════════════════════
+function buildDoc(d){
+  function df(lb,vl,full){
+    return '<div class="df"'+(full?' style="grid-column:span 2"':'')+'>'+
+      '<span class="lb">'+lb+'</span><span class="vl">'+(vl||'—')+'</span></div>';
+  }
+  var cerAll=(d.ceremonies||[]).concat((d.cerOther||'').split('\n').map(function(s){return s.trim();}).filter(Boolean));
+  var slip=d.slipDataURL||null;
+  return '<div class="dh"><div class="dbrand">WANG WALAYA</div><div class="dbsub">Wedding Planner</div>'+
+    '<div class="daddr">118, 118/1-2 หมู่ 2 ตำบลควนกรด อำเภอทุ่งสง จังหวัดนครศรีธรรมราช 80110<br>Tel. 095-4252999 / 064-2010665</div></div>'+
+    '<div class="dtw"><span class="dt">เอกสารมัดจำจองคิวงาน</span></div>'+
+    '<div class="dmeta"><span>เลขที่เอกสาร: <span class="dmv">'+(d.docno||'')+'</span></span>'+
+      '<span>วันที่ออกเอกสาร: <span class="dmv">'+fmtDate(d.docdate)+'</span></span></div>'+
+    '<div class="ds"><div class="dst">ข้อมูลลูกค้า</div><div class="dg2">'+
+      df('ชื่อเจ้าบ่าว',d.groom)+df('ชื่อเจ้าสาว',d.bride)+
+      df('เบอร์โทรติดต่อ',d.tel)+df('Line ID',d.line)+'</div></div>'+
+    '<div class="ds"><div class="dst">รายละเอียดงาน</div><div class="dg2">'+
+      df('วันที่จัดงาน',fmtDate(d.eventdate))+df('จำนวนแขก',d.guests?(d.guests+' ท่าน'):'')+
+      (d.etype?df('ประเภทงาน',d.etype):'')+
+      (d.times&&d.times.length?'<div class="df" style="grid-column:span 2"><span class="lb">ช่วงเวลาการจัดงาน</span><div style="margin-top:2px;">'+d.times.map(function(t){return'<span class="dtag">'+t+'</span>';}).join('')+'</div></div>':'')+
+      (d.foods&&d.foods.length?'<div class="df" style="grid-column:span 2"><span class="lb">อาหารจัดเลี้ยงสไตล์</span><div style="margin-top:2px;">'+d.foods.map(function(f){return'<span class="dtag">'+f+'</span>';}).join('')+'</div></div>':'')+
+      (d.venue?df('สถานที่จัดงาน',d.venue,true):'')+
+      (d.style?df('โทนสี / สไตล์',d.style):'')+
+      (d.budget?df('งบประมาณ',d.budget+' บาท'):'')+
+    '</div></div>'+
+    (cerAll.length?'<div class="ds"><div class="dst">พิธีการที่จัดงาน</div>'+cerAll.map(function(c){return'<div class="ci-doc">- '+c+'</div>';}).join('')+'</div>':'')+
+    '<div class="ds"><div class="dst">การชำระเงิน</div>'+
+      '<table class="dtbl"><thead><tr><th>รายการ</th><th>จำนวนเงิน</th></tr></thead><tbody>'+
+        '<tr><td>งวดที่ 1 — มัดจำจองคิว</td><td>'+(d.dep1||'—')+' บาท</td></tr>'+
+        '<tr><td>งวดที่ 2 — 50% (ก่อนงาน 60 วัน)</td><td>'+(d.dep2||'—')+' บาท</td></tr>'+
+        '<tr><td>งวดที่ 3 — 50% (วันงาน/หลังงานไม่เกิน 1 วัน)</td><td>'+(d.dep3||'—')+' บาท</td></tr>'+
+      '</tbody></table>'+
+      '<div style="display:flex;gap:16px;margin-top:7px;font-size:10px;color:var(--mid);">'+
+        (d.paidDate?'<span>วันที่ชำระ: <strong>'+fmtDate(d.paidDate)+'</strong></span>':'')+
+        (d.payMethod?'<span>ช่องทาง: <strong>'+d.payMethod+'</strong></span>':'')+
+      '</div></div>'+
+    (slip?'<div class="ds"><div class="dst">สลิปการชำระเงิน</div><div style="text-align:center;"><img src="'+slip+'" style="max-width:160px;max-height:160px;object-fit:contain;border:1px solid var(--line);"></div></div>':'')+
+    '<div class="ds"><div class="dst">เงื่อนไขการมัดจำจองคิว</div><div class="tbox">'+
+      '<div class="tr"><span class="tn">1.</span><span>เงินมัดจำจองคิวถือเป็นการยืนยันการจองวันจัดงาน ทางบริษัทฯ จะสงวนวันนั้นให้ลูกค้านับจากวันที่ได้รับชำระ <strong>ไม่สามารถคืนเงินได้</strong></span></div>'+
+      '<div class="tr"><span class="tn">2.</span><span>เงินมัดจำจะนำหักออกจากราคารวมทั้งหมดเมื่อสรุปยอดสุดท้ายตามใบเสนอราคา</span></div>'+
+      '<div class="tr"><span class="tn">3.</span><span>เงินมัดจำที่ชำระแล้วถือเป็นค่าดำเนินการและค่าจองเวลาของทีมงาน</span></div>'+
+      '<div class="tr"><span class="tn">4.</span><span><strong>นโยบายการยกเลิก สำหรับงวดที่ 2</strong></span></div>'+
+      '<table class="ctbl"><thead><tr><th>ระยะเวลาที่ยกเลิกก่อนวันงาน</th><th>เงื่อนไข</th></tr></thead><tbody>'+
+        '<tr><td>180 วันขึ้นไป</td><td>คืนมัดจำ 50%</td></tr>'+
+        '<tr><td>90 – 179 วัน</td><td>ไม่คืนมัดจำงวดที่ 1</td></tr>'+
+        '<tr><td>60 – 89 วัน</td><td>ไม่คืนมัดจำงวดที่ 1 และ 2</td></tr>'+
+        '<tr><td>น้อยกว่า 60 วัน</td><td>ไม่คืนเงินทั้งหมดที่ชำระแล้ว</td></tr>'+
+      '</tbody></table>'+
+      '<div class="tr"><span class="tn">5.</span><span>การยกเลิกด้วยเหตุผลส่วนตัว เช่น เปลี่ยนใจ หรือครอบครัวไม่เห็นด้วย ไม่ถือเป็นเหตุสุดวิสัย และไม่มีสิทธิ์เรียกคืนเงินนอกเหนือจากเงื่อนไขข้างต้น แต่หากเป็นเหตุสุดวิสัย เช่น ภัยพิบัติต่างๆ ทางร้านสามารถเก็บมัดจำไว้เพื่อใช้ได้หากมีการเลื่อนวัน</span></div>'+
+      '<div class="tr"><span class="tn">6.</span><span>การเปลี่ยนแปลงที่กระทบ Vendor/Supplier หลังชำระงวด 2 แล้ว ลูกค้ารับผิดชอบค่าใช้จ่ายที่เกิดขึ้น 100%</span></div>'+
+      '<div class="tr"><span class="tn">7.</span><span>ลูกค้าได้อ่านและเข้าใจเงื่อนไขทั้งหมดเรียบร้อยแล้ว และทั้งสองฝ่ายตกลงยึดถือเอกสารนี้เป็นหลักฐานการจองร่วมกัน</span></div>'+
+    '</div></div>'+
+    '<div class="ds"><div class="dst">ยืนยันการจองทั้งสองฝ่าย</div>'+
+      '<div class="sig-row">'+
+        '<div class="sig-box"><div class="sig-lbl">ลายมือชื่อลูกค้า / ผู้จอง</div><div class="sig-line"></div><div class="sig-name">( ............................................ )</div><div class="sig-date">วันที่ ...... / ...... / ..........</div></div>'+
+        '<div class="sig-box"><div class="sig-lbl">ลายมือชื่อผู้รับจอง (WANG WALAYA)</div><div class="sig-line"></div><div class="sig-name">( ............................................ )</div><div class="sig-date">วันที่ ...... / ...... / ..........</div></div>'+
+      '</div></div>'+
+    '<div class="doc-ft">WANG WALAYA Wedding Planner  ✦  Tel. 095-4252999 / 064-2010665  ✦  เอกสารนี้สร้างขึ้นเพื่อเป็นหลักฐานการจองอย่างเป็นทางการ</div>';
+}
+
+// ══════════════════════════════════════════
+//  PREVIEW DOC
+// ══════════════════════════════════════════
+function previewDoc(){
+  var d=collect();
+  document.getElementById('docOut').innerHTML=buildDoc(d);
+  // ซ่อนทุกหน้า แล้วปริ้นเลย ไม่ต้องแสดง print preview บนหน้าจอ
+  window.print();
+}
+function backToForm(){
+  document.getElementById('pgPrint').style.display='none';
+  document.getElementById('pgDash').style.display='none';
+  document.getElementById('pgForm').style.display='flex';
+  window.scrollTo(0,0);
+}
+
+// ══════════════════════════════════════════
+//  DASHBOARD
+// ══════════════════════════════════════════
+function showDash(){
+  document.getElementById('pgForm').style.display='none';
+  document.getElementById('pgPrint').style.display='none';
+  var dash = document.getElementById('pgDash');
+  dash.style.display='flex';
+  renderDash();
+  window.scrollTo(0,0);
+}
+function showForm(){
+  currentEditId = null; // ล้างโหมดแก้ไข
+  // reset save button text
+  var saveBtn=document.querySelector('.big-save');
+  if(saveBtn) saveBtn.textContent='💾 บันทึกการจอง';
+  // clear form first
+  document.querySelectorAll('#pgForm input[type=text],#pgForm input[type=date],#pgForm input[type=number],#pgForm input[type=tel],#pgForm textarea').forEach(function(el){el.value='';});
+  document.querySelectorAll('#pgForm input[type=checkbox],#pgForm input[type=radio]').forEach(function(el){el.checked=false;});
+  slipDataURL=null;
+  var img=document.getElementById('slipPrev'); if(img){img.style.display='none';img.src='';}
+  var si=document.getElementById('slipInput'); if(si)si.value='';
+  var msg=document.getElementById('saveMsg'); if(msg)msg.textContent='';
+  // set today date
+  var fd=document.getElementById('fDocdate'); if(fd)fd.value=new Date().toISOString().split('T')[0];
+  // show form
+  document.getElementById('pgDash').style.display='none';
+  document.getElementById('pgPrint').style.display='none';
+  document.getElementById('pgForm').style.display='flex';
+  window.scrollTo(0,0);
+}
+function clearForm(){
+  if(!confirm('ล้างข้อมูลทั้งหมด?')) return;
+  document.querySelectorAll('#pgForm input[type=text],#pgForm input[type=date],#pgForm input[type=number],#pgForm input[type=tel],#pgForm textarea').forEach(function(el){el.value='';});
+  document.querySelectorAll('#pgForm input[type=checkbox],#pgForm input[type=radio]').forEach(function(el){el.checked=false;});
+  slipDataURL=null;
+  var img=document.getElementById('slipPrev'); if(img){img.style.display='none';img.src='';}
+  var si=document.getElementById('slipInput'); if(si)si.value='';
+}
+
+function renderDash(){
+  var jobs=getJobs();
+  var el=document.getElementById('jobList'); if(!el) return;
+  if(!jobs.length){
+    el.innerHTML='<div class="empty"><div style="font-size:44px;margin-bottom:10px;">💍</div><p>ยังไม่มีงานที่บันทึกไว้<br>กด "+ จองคิวใหม่" เพื่อเริ่มต้น</p></div>';
+    return;
+  }
+  var sorted=jobs.slice().sort(function(a,b){return (a.eventdate||'')>(b.eventdate||'')?1:-1;});
+  el.innerHTML=sorted.map(function(job){
+    var doneCount=STEPS.filter(function(s){return job.steps&&job.steps[s.id]&&job.steps[s.id].done;}).length;
+    var pct=Math.round(doneCount/STEPS.length*100);
+    var allDone=doneCount===STEPS.length;
+
+    var stepsHtml=STEPS.map(function(step){
+      var s=(job.steps&&job.steps[step.id])||{done:false,date:'',note:'',link:''};
+      var linkHtml='';
+      if(step.hasLink){
+        linkHtml='<div class="link-row">'+
+          '<span style="font-size:11px;color:var(--mid);white-space:nowrap;">'+step.linkLabel+':</span>'+
+          '<input class="link-inp" id="li_'+job.id+'_'+step.id+'" placeholder="'+step.linkPh+'" value="'+(s.link||'')+'" onblur="saveLink(\''+job.id+'\',\''+step.id+'\',this.value)">'+
+          '<a class="link-btn" id="lb_'+job.id+'_'+step.id+'" href="'+(s.link||'#')+'" target="_blank" style="'+(s.link?'':'opacity:.4;pointer-events:none;')+'">🔗 เปิด</a>'+
+        '</div>';
+      }
+      // team items for team step
+      var teamHtml='';
+      if(step.id==='team'){
+        var items=(s.items&&s.items.length)?s.items:DEFAULT_TEAM_ITEMS.map(function(t){return {id:t.id,label:t.label,booked:'',done:false};});
+        var itemsHtml=items.map(function(item,ii){
+          return '<div class="team-item">'+
+            '<input type="checkbox" '+(item.done?'checked':'')+' onchange="toggleTeamItem(\''+job.id+'\','+ii+',this)">'+
+            '<span class="team-item-label" style="'+(item.done?'text-decoration:line-through;color:var(--mid);':'')+'">'+escH(item.label)+'</span>'+
+            '<input class="team-item-input" placeholder="จองใคร / รายละเอียด..." value="'+escH(item.booked||'')+'" onblur="saveTeamBooked(\''+job.id+'\','+ii+',this.value)">'+
+            '<button class="team-del-btn" onclick="deleteTeamItem(\''+job.id+'\','+ii+')">✕</button>'+
+          '</div>';
+        }).join('');
+        teamHtml='<div style="margin-top:8px;">'+itemsHtml+
+          '<button class="add-team-btn" onclick="addTeamItem(\''+job.id+'\')">+ เพิ่มทีม</button>'+
+        '</div>';
+      }
+      // budget table for account step
+      var budgetHtml='';
+      if(step.id==='account'){
+        var rows=s.rows||[];
+        var total=rows.reduce(function(sum,r){return sum+(parseFloat(r.amount)||0);},0);
+        var rowsHtml=rows.map(function(r,ri){
+          return '<tr>'+
+            '<td><input value="'+escH(r.desc||'')+'" placeholder="รายการ..." onblur="updateBudget(\''+job.id+'\','+ri+',\'desc\',this.value)"></td>'+
+            '<td><input value="'+escH(r.type||'')+'" placeholder="รับ/จ่าย" onblur="updateBudget(\''+job.id+'\','+ri+',\'type\',this.value)" style="width:70px;"></td>'+
+            '<td><input type="number" value="'+(r.amount||'')+'" placeholder="0" onblur="updateBudget(\''+job.id+'\','+ri+',\'amount\',this.value)" style="width:90px;"></td>'+
+            '<td><button onclick="deleteBudgetRow(\''+job.id+'\','+ri+')" style="background:none;border:none;color:#CCC;cursor:pointer;">✕</button></td>'+
+          '</tr>';
+        }).join('');
+        budgetHtml='<table class="budget-tbl">'+
+          '<thead><tr><th>รายการ</th><th>ประเภท</th><th>จำนวน (บาท)</th><th></th></tr></thead>'+
+          '<tbody>'+rowsHtml+'</tbody>'+
+          (rows.length?'<tfoot><tr class="total-row"><td colspan="2">รวม</td><td>'+total.toLocaleString()+' บาท</td><td></td></tr></tfoot>':'')+
+        '</table>'+
+        '<button class="add-row-btn" onclick="addBudgetRow(\''+job.id+'\')">+ เพิ่มรายการ</button>';
+      }
+
+      return '<div class="step">'+
+        '<div class="step-hdr" onclick="toggleStep(\''+job.id+'\',\''+step.id+'\')">'+
+          '<input type="checkbox" class="step-chk" '+(s.done?'checked':'')+' onclick="event.stopPropagation();toggleDone(\''+job.id+'\',\''+step.id+'\',this)">'+
+          '<span class="step-lbl'+(s.done?' done':'')+'" id="slbl_'+job.id+'_'+step.id+'">'+step.label+'</span>'+
+          '<span class="step-date" id="sdt_'+job.id+'_'+step.id+'">'+(s.done&&s.date?s.date:'')+'</span>'+
+          '<span style="font-size:10px;color:#CCC;margin-left:6px;">▼</span>'+
+        '</div>'+
+        '<div class="step-body" id="sb_'+job.id+'_'+step.id+'">'+
+          '<textarea class="step-note" placeholder="จดโน้ต..." id="snote_'+job.id+'_'+step.id+'" onblur="saveNote(\''+job.id+'\',\''+step.id+'\')">'+escH(s.note||'')+'</textarea>'+
+          linkHtml+teamHtml+budgetHtml+
+        '</div>'+
+      '</div>';
+    }).join('');
+
+    return '<div class="job-card" id="jc_'+job.id+'">'+
+      '<div class="jh" id="jh_'+job.id+'" onclick="toggleCard(\''+job.id+'\')">'+
+        '<div>'+
+          '<div class="j-couple">💍 '+escH((job.groom||'?')+' & '+(job.bride||'?'))+'</div>'+
+          '<div class="j-meta">'+
+            '📅 '+fmtDate(job.eventdate)+
+            (job.venue?' &nbsp;📍 '+escH(job.venue):'')+
+            (job.tel?' &nbsp;📞 '+escH(job.tel):'')+
+            '<br>'+
+            '<span style="font-size:10px;">ความคืบหน้า: <strong style="color:var(--gold-dark);">'+pct+'%</strong> ('+doneCount+'/'+STEPS.length+' ขั้นตอน)'+(allDone?' &nbsp;<span style="color:var(--green);">✓ เสร็จสมบูรณ์</span>':'')+'</span>'+
+          '</div>'+
+        '</div>'+
+        '<div class="j-acts">'+
+          '<a class="tag-cal" href="'+calLink(job)+'" target="_blank" onclick="event.stopPropagation()">📅 Google Calendar</a>'+
+          '<button class="jdel" onclick="event.stopPropagation();deleteJob(\''+job.id+'\')" title="ลบ">✕</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="jbody" id="jb_'+job.id+'">'+
+        '<div class="steps">'+stepsHtml+'</div>'+
+        '<div class="j-action-bar">'+
+          '<button class="btn btn-out" style="font-size:12px;padding:7px 14px;" onclick="editJob(\''+job.id+'\')">✏️ แก้ไขข้อมูลจอง</button>'+
+          '<button class="btn btn-out" style="font-size:12px;padding:7px 14px;" onclick="viewDoc(\''+job.id+'\')">📄 ดูเอกสาร / ปริ้น</button>'+
+        '</div>'+
+      '</div>'+
+    '</div>';
+  }).join('');
+}
+
+function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function toggleCard(id){
+  var b=document.getElementById('jb_'+id), h=document.getElementById('jh_'+id);
+  if(b){ b.classList.toggle('open'); } if(h){ h.classList.toggle('open'); }
+}
+function toggleStep(jid,sid){
+  var el=document.getElementById('sb_'+jid+'_'+sid);
+  if(el) el.classList.toggle('open');
+}
+function toggleDone(jid,sid,el){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  job.steps[sid].done=el.checked;
+  job.steps[sid].date=el.checked?new Date().toLocaleDateString('th-TH'):'';
+  setJob(job);
+  var lbl=document.getElementById('slbl_'+jid+'_'+sid);
+  if(lbl){ lbl.className='step-lbl'+(el.checked?' done':''); }
+  var dt=document.getElementById('sdt_'+jid+'_'+sid);
+  if(dt) dt.textContent=job.steps[sid].date||'';
+  // sync to Sheets
+  syncStep(jid,sid,job.steps[sid]);
+}
+function saveNote(jid,sid){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  var t=document.getElementById('snote_'+jid+'_'+sid); if(!t) return;
+  job.steps[sid].note=t.value; setJob(job);
+  syncStep(jid,sid,job.steps[sid]);
+}
+function saveLink(jid,sid,val){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  job.steps[sid].link=val; setJob(job);
+  // update open button
+  var btn=document.getElementById('lb_'+jid+'_'+sid);
+  if(btn){ btn.href=val||'#'; btn.style.opacity=val?'1':'0.4'; btn.style.pointerEvents=val?'auto':'none'; }
+}
+function deleteJob(id){
+  if(!confirm('ลบงานนี้?')) return;
+  deleteJobFromDB(id);
+  renderDash();
+}
+function editJob(id){
+  var job=getJobs().find(function(j){return j.id===id;}); if(!job) return;
+  currentEditId = id; // จำ id ที่กำลังแก้ไข
+  function sv(eid,v){ var e=document.getElementById(eid); if(e) e.value=(v||''); }
+  sv('fDocno',job.docno); sv('fDocdate',job.docdate);
+  sv('fGroom',job.groom); sv('fBride',job.bride); sv('fTel',job.tel); sv('fLine',job.line);
+  sv('fDate',job.eventdate); sv('fGuests',job.guests);
+  sv('fVenue',job.venue); sv('fStyle',job.style); sv('fBudget',job.budget);
+  sv('fDep1',job.dep1); sv('fDep2',job.dep2); sv('fDep3',job.dep3);
+  sv('fPaidDate',job.paidDate); sv('fPayMethod',job.payMethod); sv('fCerOther',job.cerOther);
+  // radio
+  document.querySelectorAll('input[name="etype"]').forEach(function(r){
+    r.checked=(r.value===job.etype)||(r.value==='_other'&&job.etype&&job.etype!=='งานแต่งงาน'&&job.etype!=='Event / งานจัดเลี้ยง');
+  });
+  if(job.etype&&job.etype!=='งานแต่งงาน'&&job.etype!=='Event / งานจัดเลี้ยง') sv('fEtypeOther',job.etype);
+  // checkboxes
+  document.querySelectorAll('.ckT').forEach(function(c){c.checked=(job.times||[]).indexOf(c.value)>-1;});
+  document.querySelectorAll('.ckF').forEach(function(c){
+    if(c.value==='_other'){ c.checked=false; return; }
+    c.checked=(job.foods||[]).indexOf(c.value)>-1;
+  });
+  document.querySelectorAll('.ckC').forEach(function(c){c.checked=(job.ceremonies||[]).indexOf(c.value)>-1;});
+  // slip — โหลดรูปกลับมาแสดงเสมอ
+  slipDataURL=job.slipDataURL||null;
+  var img=document.getElementById('slipPrev');
+  if(img){
+    if(slipDataURL){ img.src=slipDataURL; img.style.display='block'; }
+    else { img.style.display='none'; img.src=''; }
+  }
+  // แสดงฟอร์ม (ไม่ล้างข้อมูล เพราะเพิ่งกรอกไปแล้ว)
+  document.getElementById('pgDash').style.display='none';
+  document.getElementById('pgPrint').style.display='none';
+  document.getElementById('pgForm').style.display='flex';
+  // เปลี่ยนปุ่มบันทึกให้รู้ว่ากำลังแก้ไข
+  var saveBtn = document.querySelector('.big-save');
+  if(saveBtn) saveBtn.textContent='💾 อัปเดตข้อมูลการจอง';
+  var msg=document.getElementById('saveMsg');
+  if(msg) msg.textContent='✏️ กำลังแก้ไขข้อมูล — กด "อัปเดตข้อมูลการจอง" เมื่อเสร็จแล้ว';
+  window.scrollTo(0,0);
+}
+function viewDoc(id){
+  var job=getJobs().find(function(j){return j.id===id;}); if(!job) return;
+  document.getElementById('docOut').innerHTML=buildDoc(job);
+  document.getElementById('pgDash').style.display='none';
+  document.getElementById('pgForm').style.display='none';
+  document.getElementById('pgPrint').style.display='block';
+  window.scrollTo(0,0);
+}
+
+// Team Management
+function getTeamItems(job){
+  if(!job.steps.team.items||!job.steps.team.items.length){
+    job.steps.team.items = DEFAULT_TEAM_ITEMS.map(function(t){
+      return {id:t.id,label:t.label,booked:'',done:false};
+    });
+  }
+  return job.steps.team.items;
+}
+function toggleTeamItem(jid,ii,el){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  var items=getTeamItems(job);
+  items[ii].done=el.checked;
+  job.steps.team.items=items;
+  // ถ้าทำครบทุก item ให้ mark step done อัตโนมัติ
+  job.steps.team.done=items.every(function(i){return i.done;});
+  setJob(job); renderDash();
+}
+function saveTeamBooked(jid,ii,val){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  var items=getTeamItems(job);
+  items[ii].booked=val;
+  job.steps.team.items=items;
+  setJob(job);
+}
+function addTeamItem(jid){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  var items=getTeamItems(job);
+  var label=prompt('ชื่อทีมหรือรายการที่ต้องการเพิ่ม:');
+  if(!label) return;
+  items.push({id:'custom_'+Date.now(),label:label,booked:'',done:false});
+  job.steps.team.items=items;
+  setJob(job); renderDash();
+  setTimeout(function(){
+    var b=document.getElementById('jb_'+jid); if(b&&!b.classList.contains('open')) b.classList.add('open');
+    var s=document.getElementById('sb_'+jid+'_team'); if(s&&!s.classList.contains('open')) s.classList.add('open');
+  },50);
+}
+function deleteTeamItem(jid,ii){
+  if(!confirm('ลบรายการนี้?')) return;
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  var items=getTeamItems(job);
+  items.splice(ii,1);
+  job.steps.team.items=items;
+  setJob(job); renderDash();
+}
+
+// Budget
+function addBudgetRow(jid){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  if(!job.steps.account.rows) job.steps.account.rows=[];
+  job.steps.account.rows.push({desc:'',type:'',amount:''});
+  setJob(job); renderDash();
+  // re-open card and step
+  setTimeout(function(){
+    var b=document.getElementById('jb_'+jid); if(b&&!b.classList.contains('open')) b.classList.add('open');
+    var s=document.getElementById('sb_'+jid+'_account'); if(s&&!s.classList.contains('open')) s.classList.add('open');
+  },50);
+}
+function updateBudget(jid,ri,field,val){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  job.steps.account.rows[ri][field]=val; setJob(job);
+}
+function deleteBudgetRow(jid,ri){
+  var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  job.steps.account.rows.splice(ri,1); setJob(job); renderDash();
+}
+
+// Sync to Google Sheets
+function syncStep(jid,sid,stepData){
+  var url=getSheetUrl(); if(!url) return;
+  fetch(url,{method:'POST',body:JSON.stringify({action:'update_checklist',bookingId:jid,stepId:sid,done:stepData.done,note:stepData.note||''})}).catch(function(){});
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+document.getElementById('fDocdate').value=new Date().toISOString().split('T')[0];
+// แสดง banner ถ้ายังไม่ได้ตั้งค่า URL
+var savedUrl=getSheetUrl();
+if(savedUrl){
+  document.getElementById('sheetBanner').style.display='none';
+  document.getElementById('sheetUrl').value=savedUrl;
+}
+// เริ่มต้น Firebase realtime listener
+initFirebaseListener();
+</script>
+</body>
+</html>
