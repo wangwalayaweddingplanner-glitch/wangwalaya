@@ -493,19 +493,28 @@ function deleteJobFromDB(id){
 
 // ── ฟังการเปลี่ยนแปลงแบบ realtime ──
 var _isLocalUpdate = false;
+var _firstLoad = true;
 function initFirebaseListener(){
   showLoadingOverlay();
   db.ref(DB_PATH).on('value', function(snap){
     var data = snap.val() || {};
     var newCache = Object.values(data);
-    // ถ้าเป็น local update ให้ skip re-render
-    if(!_isLocalUpdate){
+    if(_firstLoad){
+      // โหลดครั้งแรก — แสดงข้อมูลเลย
+      _firstLoad = false;
       _jobsCache = newCache;
       hideLoadingOverlay();
       if(document.getElementById('pgDash').style.display === 'flex') renderDash();
-    } else {
+    } else if(_isLocalUpdate){
+      // update จากเครื่องตัวเอง — อัปเดต cache แต่ไม่ re-render
       _isLocalUpdate = false;
+      _jobsCache = newCache;
       hideLoadingOverlay();
+    } else {
+      // update จากเครื่องอื่น — re-render ได้
+      _jobsCache = newCache;
+      hideLoadingOverlay();
+      if(document.getElementById('pgDash').style.display === 'flex') renderDash();
     }
   }, function(err){
     hideLoadingOverlay();
