@@ -798,6 +798,12 @@ function clearForm(){
 function renderDash(){
   var jobs=getJobs();
   var el=document.getElementById('jobList'); if(!el) return;
+  // จำ card ที่เปิดอยู่
+  var openCards={};
+  var openSteps={};
+  document.querySelectorAll('.jbody.open').forEach(function(e){ openCards[e.id]=true; });
+  document.querySelectorAll('.step-body.open').forEach(function(e){ openSteps[e.id]=true; });
+
   if(!jobs.length){
     el.innerHTML='<div class="empty"><div style="font-size:44px;margin-bottom:10px;">💍</div><p>ยังไม่มีงานที่บันทึกไว้<br>กด "+ จองคิวใหม่" เพื่อเริ่มต้น</p></div>';
     return;
@@ -899,6 +905,15 @@ function renderDash(){
       '</div>'+
     '</div>';
   }).join('');
+
+  // restore card และ step ที่เปิดอยู่ก่อน render
+  Object.keys(openCards).forEach(function(id){
+    var el=document.getElementById(id); if(el) el.classList.add('open');
+    var hid=id.replace('jb_','jh_'); var h=document.getElementById(hid); if(h) h.classList.add('open');
+  });
+  Object.keys(openSteps).forEach(function(id){
+    var el=document.getElementById(id); if(el) el.classList.add('open');
+  });
 }
 
 function escH(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
