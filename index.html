@@ -1013,9 +1013,11 @@ function toggleTeamItem(jid,ii,el){
   var items=getTeamItems(job);
   items[ii].done=el.checked;
   job.steps.team.items=items;
-  // ถ้าทำครบทุก item ให้ mark step done อัตโนมัติ
   job.steps.team.done=items.every(function(i){return i.done;});
-  setJob(job); renderDash();
+  setJob(job);
+  // อัปเดต UI โดยไม่ re-render ทั้งหน้า
+  var lbl=el.nextElementSibling;
+  if(lbl) lbl.style.textDecoration=el.checked?'line-through':'none';
 }
 function saveTeamBooked(jid,ii,val){
   var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
@@ -1031,11 +1033,24 @@ function addTeamItem(jid){
   if(!label) return;
   items.push({id:'custom_'+Date.now(),label:label,booked:'',done:false});
   job.steps.team.items=items;
-  setJob(job); renderDash();
-  setTimeout(function(){
-    var b=document.getElementById('jb_'+jid); if(b&&!b.classList.contains('open')) b.classList.add('open');
-    var s=document.getElementById('sb_'+jid+'_team'); if(s&&!s.classList.contains('open')) s.classList.add('open');
-  },50);
+  setJob(job);
+  // เพิ่ม item ใหม่ใน UI โดยไม่ re-render ทั้งหน้า
+  var container=document.querySelector('#sb_'+jid+'_team .team-add-wrap');
+  if(container){
+    var newItem=document.createElement('div');
+    newItem.className='team-item';
+    var newIdx=items.length-1;
+    newItem.innerHTML=
+      '<input type="checkbox" onchange="toggleTeamItem(\''+jid+'\','+newIdx+',this)">'+
+      '<span class="team-item-label">'+label+'</span>'+
+      '<input class="team-item-input" placeholder="จองใคร / รายละเอียด..." onblur="saveTeamBooked(\''+jid+'\','+newIdx+',this.value)">'+
+      '<button class="team-del-btn" onclick="deleteTeamItem(\''+jid+'\','+newIdx+')">✕</button>';
+    container.parentNode.insertBefore(newItem, container);
+  } else {
+    // fallback
+    var s=document.getElementById('sb_'+jid+'_team');
+    if(s&&!s.classList.contains('open')) s.classList.add('open');
+  }
 }
 function deleteTeamItem(jid,ii){
   if(!confirm('ลบรายการนี้?')) return;
@@ -1043,28 +1058,47 @@ function deleteTeamItem(jid,ii){
   var items=getTeamItems(job);
   items.splice(ii,1);
   job.steps.team.items=items;
-  setJob(job); renderDash();
+  setJob(job);
+  // ลบ item ออกจาก UI โดยไม่ re-render
+  var teamBody=document.getElementById('sb_'+jid+'_team');
+  if(teamBody){
+    var teamItems=teamBody.querySelectorAll('.team-item');
+    if(teamItems[ii]) teamItems[ii].remove();
+  }
 }
 
 // Budget
 function addBudgetRow(jid){
   var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  if(!job.steps.account) job.steps.account={done:false,date:'',note:'',link:'',rows:[]};
   if(!job.steps.account.rows) job.steps.account.rows=[];
   job.steps.account.rows.push({desc:'',type:'',amount:''});
-  setJob(job); renderDash();
-  // re-open card and step
-  setTimeout(function(){
-    var b=document.getElementById('jb_'+jid); if(b&&!b.classList.contains('open')) b.classList.add('open');
-    var s=document.getElementById('sb_'+jid+'_account'); if(s&&!s.classList.contains('open')) s.classList.add('open');
-  },50);
+  setJob(job);
+  var tbody=document.querySelector('#sb_'+jid+'_account table tbody');
+  if(tbody){
+    var ri=job.steps.account.rows.length-1;
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td><input placeholder="รายการ..." onblur="updateBudget(\''+jid+'\','+ri+',\'desc\',this.value)" style="width:100%;border:none;border-bottom:1px solid #eee;background:transparent;font-family:\'Noto Sans Thai\',sans-serif;font-size:12px;outline:none;padding:2px 0;"></td>'+
+      '<td><input placeholder="รับ/จ่าย" onblur="updateBudget(\''+jid+'\','+ri+',\'type\',this.value)" style="width:70px;border:none;border-bottom:1px solid #eee;background:transparent;font-family:\'Noto Sans Thai\',sans-serif;font-size:12px;outline:none;padding:2px 0;"></td>'+
+      '<td><input type="number" placeholder="0" onblur="updateBudget(\''+jid+'\','+ri+',\'amount\',this.value)" style="width:90px;border:none;border-bottom:1px solid #eee;background:transparent;font-family:\'Noto Sans Thai\',sans-serif;font-size:12px;outline:none;padding:2px 0;"></td>'+
+      '<td><button onclick="deleteBudgetRow(\''+jid+'\','+ri+')" style="background:none;border:none;color:#CCC;cursor:pointer;">✕</button></td>';
+    tbody.appendChild(tr);
+  }
 }
 function updateBudget(jid,ri,field,val){
   var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
+  if(!job.steps.account.rows[ri]) return;
   job.steps.account.rows[ri][field]=val; setJob(job);
 }
 function deleteBudgetRow(jid,ri){
   var jobs=getJobs(), job=jobs.find(function(j){return j.id===jid;}); if(!job) return;
-  job.steps.account.rows.splice(ri,1); setJob(job); renderDash();
+  job.steps.account.rows.splice(ri,1); setJob(job);
+  var tbody=document.querySelector('#sb_'+jid+'_account table tbody');
+  if(tbody){
+    var rows=tbody.querySelectorAll('tr');
+    if(rows[ri]) rows[ri].remove();
+  }
 }
 
 // Sync to Google Sheets
